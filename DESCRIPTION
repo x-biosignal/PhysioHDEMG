@@ -1,0 +1,35 @@
+Package: PhysioHDEMG
+Title: High-Density Surface EMG Motor-Unit Decomposition for the Physio Ecosystem
+Version: 0.1.1
+Authors@R:
+    person(given = "Yusuke",
+           family = "Matsui",
+           role = c("aut", "cre"),
+           email = "mail.to.matsui@gmail.com")
+Description: Decomposition of high-density surface electromyography
+    (HD-sEMG) electrode-grid recordings into constituent motor-unit
+    discharge patterns by convolutive blind source separation (extension,
+    whitening and a fixed-point contrast maximisation with
+    convolution-kernel-compensation refinement), following Holobar & Zazula
+    (2007) and Negro et al. (2016). Provides motor-unit pulse trains,
+    firing statistics (discharge rate, recruitment / derecruitment,
+    pulse-to-noise ratio and silhouette quality), spatial motor-unit
+    action-potential maps over the electrode grid, and a ground-truth
+    HD-sEMG simulator for validation.
+Depends:
+    R (>= 4.2)
+Imports:
+    stats,
+    utils
+Suggests:
+    PhysioCore,
+    S4Vectors,
+    SummarizedExperiment,
+    testthat (>= 3.2.0)
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3
+URL: https://github.com/x-biosignal/PhysioHDEMG, https://x-biosignal.r-universe.dev/PhysioHDEMG, https://x-biosignal.github.io/PhysioHDEMG/
+BugReports: https://github.com/x-biosignal/PhysioHDEMG/issues
