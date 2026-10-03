@@ -1,0 +1,91 @@
+---
+title: "Motor-unit decomposition of HD-sEMG"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Motor-unit decomposition of HD-sEMG}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+`PhysioHDEMG` decomposes high-density surface EMG (HD-sEMG) electrode-grid
+recordings into the discharge patterns of the individual motor units that
+produced them. This vignette runs the whole pipeline offline on a synthetic
+recording with **known** motor units, so every number can be checked against
+ground truth — no device or data file is needed.
+
+```{r}
+library(PhysioHDEMG)
+```
+
+## 1. Simulate a recording with known motor units
+
+`make_hdemg_sim()` superimposes a set of motor units — each with its own
+discharge train and its own spatial action-potential map over the electrode
+grid — and returns the ground-truth discharge times alongside the signal.
+
+```{r}
+sim <- make_hdemg_sim(
+  n_units      = 3,
+  duration_sec = 4,
+  grid         = c(4, 4),   # 16-channel electrode grid
+  noise_sd     = 0.005,     # smaller = higher SNR
+  seed         = 1
+)
+sim
+dim(sim$signal)             # n_time x n_channels
+lengths(sim$spikes)         # ground-truth discharges per unit
+```
+
+## 2. Decompose
+
+`hdEMGDecompose()` extends and whitens the channels, seeds each source by a
+fixed-point contrast maximisation, refines it by convolution-kernel
+compensation, and accepts units that clear a pulse-to-noise-ratio and
+silhouette quality gate.
+
+```{r}
+dec <- hdEMGDecompose(sim, n_units = 6, extension_factor = 10, seed = 1)
+dec
+dec$quality
+```
+
+## 3. Inspect the recovered units
+
+The accessors turn a decomposition into tidy tables. `muPulseTrains()` lists
+every discharge, `muFiringStats()` summarises discharge rate, recruitment, and
+quality per unit, and `muActionPotentialMaps()` recovers each unit's spatial
+footprint on the grid.
+
+```{r}
+head(muPulseTrains(dec))
+muFiringStats(dec)
+
+maps <- muActionPotentialMaps(dec)
+maps[[1]]$peak_channel     # strongest electrode for the first unit
+```
+
+## 4. Validate against the ground truth
+
+Because the simulator recorded the true discharge times, we can score the
+decomposition with a lag-aware rate of agreement. `roa_lag_aware` near 1 means
+a reference unit was recovered; `lag` is the constant latency between the two.
+
+```{r}
+matchMotorUnits(dec, sim$spikes, tol = 2, max_lag = 5)
+```
+
+## Working with your own recordings
+
+On real data, read a grid from an HDF5 file with `readHDEMG()` (which can also
+carry a bundled reference decomposition for `matchMotorUnits()`), or wrap an
+in-memory matrix with `hdemgToPhysioExperiment()` to join the shared
+`PhysioExperiment` data model. Real motor units have lower quality than this
+clean simulation, so band-pass the signal (`bandpass = c(20, 500)`) and relax
+the gates (`pnr_threshold`, `sil_threshold`) — see `?hdEMGDecompose`.
+
+Conventional (non-decomposed) EMG features live in the sibling `PhysioEMG`
+package.
